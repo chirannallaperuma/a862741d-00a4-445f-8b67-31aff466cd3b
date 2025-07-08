@@ -1,0 +1,58 @@
+name: Run Laravel Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install docker-compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Build containers
+        run: docker compose build
+
+      - name: Start containers detached
+        run: docker compose up -d
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: docker compose exec -T --user www-data app composer install --no-interaction --prefer-dist
+
+      - name: Copy env file
+        run: docker compose exec -T --user www-data app cp .env.example .env
+
+      - name: Generate application key
+        run: docker compose exec -T --user www-data app php artisan key:generate
+
+      - name: Run migrations
+        run: docker compose exec -T --user www-data app php artisan migrate --force
+
+      - name: Run tests
+        run: docker compose exec -T --user www-data app ./vendor/bin/phpunit --colors=always
+
+      - name: Tear down containers
+        if: always()
+        run: docker compose down
