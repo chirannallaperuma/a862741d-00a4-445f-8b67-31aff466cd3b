@@ -28,8 +28,5 @@ jobs:
       - name: Install Composer dependencies
         run: docker-compose run --rm composer install --no-interaction --prefer-dist
 
-      - name: Generate app key
-        run: php artisan key:generate
-
       - name: Run PHPUnit tests
         run: docker-compose run --rm app ./vendor/bin/phpunit --colors=always
