@@ -29,7 +29,7 @@ jobs:
         run: docker-compose run --rm composer install --no-interaction --prefer-dist
 
       - name: Generate app key
-        run: docker-compose run --rm app php artisan key:generate
+        run: php artisan key:generate
 
       - name: Run PHPUnit tests
         run: docker-compose run --rm app ./vendor/bin/phpunit --colors=always
