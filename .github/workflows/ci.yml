@@ -1,4 +1,4 @@
-name: Run Laravel Tests
+name: Run Tests
 
 on:
   push:
@@ -10,49 +10,35 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    env:
-      APP_ENV: testing
-      DB_CONNECTION: sqlite
-      DB_DATABASE: ':memory:'
-
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install docker-compose
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      - name: Build containers
-        run: docker compose build
+      - name: Build Docker containers
+        run: docker-compose build
 
-      - name: Start containers detached
-        run: docker compose up -d
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v3
-        with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+      - name: Start Docker containers
+        run: docker-compose up -d
 
       - name: Install Composer dependencies
-        run: docker compose exec -T --user www-data app composer install --no-interaction --prefer-dist
+        run: docker-compose exec -T app composer install --no-interaction --prefer-dist
 
-      - name: Copy env file
-        run: docker compose exec -T --user www-data app cp .env.example .env
+      - name: Copy .env
+        run: docker-compose exec -T app cp .env.example .env
 
-      - name: Generate application key
-        run: docker compose exec -T --user www-data app php artisan key:generate
+      - name: Generate app key
+        run: docker-compose exec -T app php artisan key:generate
 
-      - name: Run migrations
-        run: docker compose exec -T --user www-data app php artisan migrate --force
+      - name: Run migrations (optional)
+        run: docker-compose exec -T app php artisan migrate --env=testing
 
-      - name: Run tests
-        run: docker compose exec -T --user www-data app ./vendor/bin/phpunit --colors=always
-
-      - name: Tear down containers
-        if: always()
-        run: docker compose down
+      - name: Run Laravel tests
+        run: docker-compose exec -T app php artisan test
