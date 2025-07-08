@@ -17,7 +17,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install Docker Compose
+      - name: Install docker-compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
@@ -25,20 +25,11 @@ jobs:
       - name: Build Docker containers
         run: docker-compose build
 
-      - name: Start Docker containers
-        run: docker-compose up -d
-
       - name: Install Composer dependencies
-        run: docker-compose exec -T app composer install --no-interaction --prefer-dist
-
-      - name: Copy .env
-        run: docker-compose exec -T app cp .env.example .env
+        run: docker-compose run --rm composer install --no-interaction --prefer-dist
 
       - name: Generate app key
-        run: docker-compose exec -T app php artisan key:generate
+        run: docker-compose run --rm app php artisan key:generate
 
-      - name: Run migrations (optional)
-        run: docker-compose exec -T app php artisan migrate --env=testing
-
-      - name: Run Laravel tests
-        run: docker-compose exec -T app php artisan test
+      - name: Run PHPUnit tests
+        run: docker-compose run --rm app ./vendor/bin/phpunit --colors=always
