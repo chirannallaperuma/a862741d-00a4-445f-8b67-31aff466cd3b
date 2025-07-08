@@ -28,5 +28,11 @@ jobs:
       - name: Install Composer dependencies
         run: docker-compose run --rm composer install --no-interaction --prefer-dist
 
+      - name: Copy .env.example to .env
+        run: docker-compose run --rm app cp .env.example .env
+
+      - name: Generate app key
+        run: docker-compose run --rm app php artisan key:generate
+
       - name: Run PHPUnit tests
         run: docker-compose run --rm app ./vendor/bin/phpunit --colors=always
